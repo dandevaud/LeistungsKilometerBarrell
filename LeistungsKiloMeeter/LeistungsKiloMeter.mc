@@ -7,13 +7,15 @@ using Toybox.Math;
 module LeistungsKiloMeter {
 
 var prevTime;
+var elapsedPrevTime;
 var values = {};
 var totTime = 0;
 var totLkm = 0.0f;
 
-var lkmMeanArray = [];
-var zScoreTrigger = 3;
-var meanArraySize = 60;
+
+var countTrigger = 5;
+var counter = 0;
+
 		        	
    function updateLeistungsKilometer(info){
            if(info has :altitude && info has :elapsedDistance && info has :startTime){
@@ -43,20 +45,9 @@ var meanArraySize = 60;
 			        	lkmh = lkm/hoursElapsed;
 			        }
 		        }
-		        	if(lkmMeanArray.size()==meanArraySize&&info.elapsedDistance>100){
-			        	var avLkmh = (totLkm*3600)/totTime;
-			        	if(!isOutlier(avLkmh,lkmh)){
-				        	updateValues(lkm, timeFromPrevPoint,lkmh,info,steepness,now);
-		                }
-	                } else {
-		                if(info.elapsedDistance>100&&lkmh!=0){
-				 			lkmMeanArray.add(lkmh);
-					 	}
-	                	updateValues(lkm, timeFromPrevPoint,lkmh,info,steepness,now);
-	                }
-	                
-	                
-	       		 }  
+	        	
+			        	     	updateValues(lkm, timeFromPrevPoint,lkmh,info,steepness,now);		              
+		       		 }  
 	       		  
 				}  
 			}
@@ -68,31 +59,7 @@ var meanArraySize = 60;
                 prevTime = now.value();
 			}
 			
-			function isOutlier(avLkmh,lkmh){
-				var outlier = false;
-				if(lkmMeanArray.size()==meanArraySize&&lkmh!=0){
-				 	var sum = 0.0;
-				 	for(var i=0;i<lkmMeanArray.size();i++){
-				 	var value = lkmMeanArray[i];
-				 		sum += Math.pow(value.toLong()-avLkmh.toLong(),2).toLong();
-				 	}
-				 	var variance = Math.sqrt(sum/lkmMeanArray.size());
-				 	var zScore = (lkmh-avLkmh)/variance;
-				 	if(zScore>zScoreTrigger){
-				 		outlier = true;
-				 	} else {
-				 		lkmMeanArray.add(lkmh);
-				 		lkmMeanArray = lkmMeanArray.slice(1,null);
-				 	}	
-				} else {
-				 if(lkmh!=0){
-				 	lkmMeanArray.add(lkmh);
-				 }
-				}
-				
-				return outlier;
-			}
-			
+					
 			
 		function getLeistungsKilometer(deltaDistance, steepness, deltaAlti){
 					var lkm = deltaDistance/1000;
@@ -118,9 +85,19 @@ var meanArraySize = 60;
 		function checkIfUpdateNeeded(info){
 			var now = new Time.Moment(Time.now().value());
 			var gpsQuality = Position.getInfo().accuracy;
-			if(prevTime!=now.value()&& (gpsQuality == Position.QUALITY_USABLE||Position.QUALITY_GOOD)){
+			if(counter % countTrigger == 0){
+				if(prevTime!=now.value()&& (gpsQuality == Position.QUALITY_USABLE||Position.QUALITY_GOOD)){
 			 	updateLeistungsKilometer(info);
-			 }
+			 	} else {
+			 		//if gps quality not good enough wait for next iteration
+			 		counter --;
+			 	}
+			}
+			counter ++;
+	           if(counter == (100 * countTrigger)){
+	              	counter = 0;
+	              }
+			
 		}
 			
 		function getLeistungsKilometerProStunde(info){		
@@ -161,9 +138,25 @@ var meanArraySize = 60;
 			values = {};
 		}
 		
-		function setTrigger(zScoreTriggerIn, meanArraySizeIn){
-			self.zScoreTrigger = zScoreTriggerIn;
-			self.meanArraySize = meanArraySizeIn;
+		function setTrigger(countTriggerIn){
+			self.countTrigger = countTriggerIn;
+		}
+		
+		function activityPaused(){
+			var now = new Time.Moment(Time.now().value());
+			var timeToUse = prevTime;
+		    if(timeToUse == null){
+		     	timeToUse = info.startTime.value();
+		    }
+		     var elapsedPrevTime = now.subtract(new Time.Moment(timeToUse));	  
+		}
+		
+		function activityResumed(){
+		 	var now = new Time.Moment(Time.now().value());
+		 	if(elapsedPrevTime!=null){
+		 		now = now.subtract(elapsedPrevTime);
+		 	}
+		 	prevTime = now;
 		}
 		
 		
