@@ -86,11 +86,13 @@ var counter = 0;
 			var now = new Time.Moment(Time.now().value());
 			var gpsQuality = Position.getInfo().accuracy;
 			if(counter % countTrigger == 0){
-				if(prevTime!=now.value()&& (gpsQuality == Position.QUALITY_USABLE||Position.QUALITY_GOOD)){
+				if(prevTime!=now.value()&& (gpsQuality == Position.QUALITY_USABLE||gpsQuality ==Position.QUALITY_GOOD)){
 			 	updateLeistungsKilometer(info);
-			 	} else {
-			 		//if gps quality not good enough wait for next iteration
-			 		counter --;
+			 	} else {	
+			 		//if gps uality not good enough wait for next iteration
+			 		if(counter>0){
+			 		counter--;
+			 		}
 			 	}
 			}
 			counter ++;
