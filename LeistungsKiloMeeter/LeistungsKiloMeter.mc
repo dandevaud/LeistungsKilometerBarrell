@@ -7,38 +7,39 @@ using Toybox.Math;
 module LeistungsKiloMeter {
 
 var prevTime;
-var elapsedPrevTime;
 var values = {};
 var totTime = 0;
 var totLkm = 0.0f;
 
 
-var countTrigger = 5;
+var countTrigger = 60;
 var counter = 0;
 
 		        	
    function updateLeistungsKilometer(info){
-           if(info has :altitude && info has :elapsedDistance && info has :startTime){
-		        if(info.altitude != null && info.elapsedDistance != null && info.startTime != null){
+           if(info has :altitude && info has :elapsedDistance && info has :startTime  && info has :timerTime){
+		        if(info.altitude != null && info.elapsedDistance != null && info.startTime != null && info.timerTime !=null){
 		       	
-		        var now = new Time.Moment(Time.now().value());
+		        var now = new Time.Moment(info.timerTime);
 		        var timeToUse = prevTime;
+		        var timeFromPrevPoint;
 		        if(timeToUse == null){
-		        	timeToUse = info.startTime.value();
-		        }
-		        var timeFromPrevPoint = now.subtract(new Time.Moment(timeToUse));	        
+		        	timeFromPrevPoint = now;
+		        } else {
+		        	timeFromPrevPoint = now.subtract(new Time.Moment(timeToUse.toLong()));	
+		        }        
 			    var steepness = 0.0f;
 		        var lkm = 0.0f;
 		        var lkmh = 0.0f;
 		        if(values.hasKey("lkm")){			       
 			        var deltaAlti = info.altitude.toFloat() - values.get("altitude") ;
-			        var deltaDistance = info.elapsedDistance.toFloat() - values.get("distance");		
+			        var deltaDistance = info.elapsedDistance.toFloat() - values.get("distance");	
 			        deltaDistance = deltaDistance.abs();  
 			       	steepness = 0;
 			        if(deltaDistance.toFloat()!=0){
 			        	steepness = deltaAlti.toFloat() / deltaDistance.toFloat();
 			        } 
-			        var hoursElapsed = timeFromPrevPoint.value().toFloat() / 3600;
+			        var hoursElapsed = timeFromPrevPoint.value().toFloat() / 3600000;
 			        
 			       	lkm = getLeistungsKilometer(deltaDistance, steepness, deltaAlti);
 			       	if(hoursElapsed>0){
@@ -86,7 +87,7 @@ var counter = 0;
 			var now = new Time.Moment(Time.now().value());
 			var gpsQuality = Position.getInfo().accuracy;
 			if(counter % countTrigger == 0){
-				if(prevTime!=now.value()&& (gpsQuality == Position.QUALITY_USABLE||gpsQuality ==Position.QUALITY_GOOD)){
+				if(prevTime!=now.value() && (gpsQuality > 1)){
 			 	updateLeistungsKilometer(info);
 			 	} else {	
 			 		//if gps uality not good enough wait for next iteration
@@ -124,14 +125,14 @@ var counter = 0;
 			checkIfUpdateNeeded(info);	 
 			var avLKM = 0;
 			if(totTime>0){
-				var hours = totTime / 3600;
+				var hours = totTime / 3600000;
 				avLKM = totLkm / hours;	
 			}		
 			return avLKM;
 		}
 		
 		function getTotalLkm(info){
-			checkIfUpdateNeeded(info);				
+			checkIfUpdateNeeded(info);
 			return totLkm;
 		}
 		
@@ -145,21 +146,11 @@ var counter = 0;
 		}
 		
 		function activityPaused(){
-			var now = new Time.Moment(Time.now().value());
-			var timeToUse = prevTime;
-		    if(timeToUse == null){
-		     	timeToUse = info.startTime.value();
-		    }
-		     var elapsedPrevTime = now.subtract(new Time.Moment(timeToUse));	  
+
 		}
 		
-		function activityResumed(){
-		 	var now = new Time.Moment(Time.now().value());
-		 	if(elapsedPrevTime!=null){
-		 		now = now.subtract(elapsedPrevTime);
-		 	}
-		 	prevTime = now;
+		function activityResumed(totalLkm){
+		 	totLkm = totalLkm;
 		}
-		
 		
 }
