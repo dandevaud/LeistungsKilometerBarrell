@@ -63,14 +63,17 @@ var counter = 0;
 					
 			
 		function getLeistungsKilometer(deltaDistance, steepness, deltaAlti){
-					var lkm = deltaDistance/1000;
-					deltaAlti = deltaAlti.abs();
-			        if(-0.2>steepness){
-			        	lkm += (deltaAlti/150);
-			        } else if (0<=steepness){
-			        	lkm += (deltaAlti/100);
-			        }
-			        return lkm;
+					if(deltaDistance>=1){
+						var lkm = deltaDistance/1000;
+						deltaAlti = deltaAlti.abs();
+			        	if(-0.2>steepness){
+			        		lkm += (deltaAlti/150);
+			        	} else if (0<=steepness){
+			        		lkm += (deltaAlti/100);
+			        	}
+			        	return lkm;
+			        } 
+			        return 0;
 			}
 			
 		function updatePointValues(lkm,lkmh,info,timeFromPrevPoint, steepness){					
@@ -90,7 +93,7 @@ var counter = 0;
 				if(prevTime!=now.value() && (gpsQuality > 1)){
 			 	updateLeistungsKilometer(info);
 			 	} else {	
-			 		//if gps uality not good enough wait for next iteration
+			 		//if gps quality not good enough wait for next iteration
 			 		if(counter>0){
 			 		counter--;
 			 		}
@@ -146,11 +149,14 @@ var counter = 0;
 		}
 		
 		function activityPaused(){
-			Application.Storage.setValue("totLKM",totLkm);
+		return totLkm;
+			
 		}
 		
-		function activityResumed(){
-			var lkm = Application.Storage.get("totLKM");
+	
+		
+		function activityResumed(lkm){
+			
 			if(lkm != null){
 			 	totLkm = lkm;
 			 	}
